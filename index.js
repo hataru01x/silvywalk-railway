@@ -1,0 +1,85 @@
+const express = require('express');
+const fetch = require('node-fetch');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.header('Access-Control-Allow-Headers', '*');
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  next();
+});
+
+app.get('/', async (req, res) => {
+  const { lat, lng, r } = req.query;
+  if (!lat || !lng) return res.status(400).json({ error: 'lat e lng richiesti' });
+
+  const radius = r || '8000';
+  const query = `[out:json][timeout:30];(node["tourism"~"alpine_hut|wilderness_hut"]["name"](around:${radius},${lat},${lng});node["natural"="peak"]["name"](around:${radius},${lat},${lng});node["mountain_pass"="yes"]["name"](around:${radius},${lat},${lng});node["amenity"="shelter"]["name"](around:${radius},${lat},${lng});way["highway"~"path|track"]["name"](around:${radius},${lat},${lng}););out body center qt;way["highway"~"path|track"]["name"](around:${radius},${lat},${lng});out geom qt;`;
+
+  const servers = [
+    'https://overpass-api.de/api/interpreter',
+    'https://overpass.kumi.systems/api/interpreter',
+    'https://overpass.private.coffee/api/interpreter',
+  ];
+
+  for (const server of servers) {
+    try {
+      const response = await fetch(server, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'application/json',
+          'User-Agent': 'SilvyWalk/1.0',
+        },
+        body: `data=${encodeURIComponent(query)}`,
+        timeout: 35000,
+      });
+
+      if (!response.ok) continue;
+      const text = await response.text();
+      if (text.startsWith('<') || text.startsWith('Error')) continue;
+      return res.json(JSON.parse(text));
+    } catch (e) {
+      console.log(server, 'error:', e.message);
+      continue;
+    }
+  }
+
+  res.status(500).json({ error: 'Server non disponibile' });
+});
+
+app.get('/geocode', async (req, res) => {
+  const { q } = req.query;
+  if (!q) return res.status(400).json({ error: 'q richiesto' });
+
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q + ' Italia')}&format=json&limit=1&addressdetails=1`;
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'SilvyWalk/1.0',
+        'Accept-Language': 'it',
+      },
+      timeout: 10000,
+    });
+    const data = await response.json();
+    if (data && data.length > 0) {
+      res.json({
+        found: true,
+        lat: parseFloat(data[0].lat),
+        lng: parseFloat(data[0].lon),
+        name: data[0].display_name,
+      });
+    } else {
+      res.json({ found: false });
+    }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.listen(PORT, () => {
+  console.log(`SilvyWalk proxy running on port ${PORT}`);
+});
