@@ -75,7 +75,7 @@ app.get('/', async (req, res) => {
   if (!lat || !lng) return res.status(400).json({ error: 'lat e lng richiesti' });
 
   const radius = r || '3000';
-  const query = `[out:json][timeout:25];(node["tourism"~"alpine_hut|wilderness_hut"]["name"](around:${radius},${lat},${lng});node["natural"="peak"]["name"](around:${radius},${lat},${lng});node["mountain_pass"="yes"]["name"](around:${radius},${lat},${lng});node["amenity"="shelter"]["name"](around:${radius},${lat},${lng});way["highway"~"path|track"]["name"](around:${radius},${lat},${lng}););out body center qt;way["highway"~"path|track"]["name"](around:${radius},${lat},${lng});out geom qt;`;
+  const query = `[out:json][timeout:25];(node["tourism"~"alpine_hut|wilderness_hut"]["name"](around:${radius},${lat},${lng});node["natural"="peak"]["name"](around:${radius},${lat},${lng});node["mountain_pass"="yes"]["name"](around:${radius},${lat},${lng});way["highway"~"path|track"]["name"](around:${radius},${lat},${lng}););out body geom qt;`;
 
   try {
     const data = await queryOverpass(query);
