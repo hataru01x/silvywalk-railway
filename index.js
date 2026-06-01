@@ -63,7 +63,7 @@ app.get('/geocode', async (req, res) => {
         'User-Agent': 'SilvyWalk/1.0',
         'Accept-Language': 'it',
       },
-      timeout: 10000,
+      timeout: 25000,
     });
     const data = await response.json();
     if (data && data.length > 0) {
