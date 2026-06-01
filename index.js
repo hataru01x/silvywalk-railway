@@ -17,9 +17,8 @@ app.get('/', async (req, res) => {
   if (!lat || !lng) return res.status(400).json({ error: 'lat e lng richiesti' });
 
   const radius = r || '4000';
-  const query = `[out:json][timeout:20];(node["tourism"~"alpine_hut|wilderness_hut"]["name"](around:${radius},${lat},${lng});node["natural"="peak"]["name"](around:${radius},${lat},${lng});node["mountain_pass"="yes"]["name"](around:${radius},${lat},${lng});node["amenity"="shelter"]["name"](around:${radius},${lat},${lng});way["highway"~"path|track"]["name"](around:${radius},${lat},${lng}););out body center qt;way["highway"~"path|track"]["name"](around:${radius},${lat},${lng});out geom qt;`;
+  const query = `[out:json][timeout:25];(node["tourism"~"alpine_hut|wilderness_hut"]["name"](around:${radius},${lat},${lng});node["natural"="peak"]["name"](around:${radius},${lat},${lng});node["mountain_pass"="yes"]["name"](around:${radius},${lat},${lng});node["amenity"="shelter"]["name"](around:${radius},${lat},${lng});way["highway"~"path|track"]["name"](around:${radius},${lat},${lng}););out body center qt;way["highway"~"path|track"]["name"](around:${radius},${lat},${lng});out geom qt;`;
 
-  const servers = [
   const servers = [
     'https://overpass-api.de/api/interpreter',
     'https://overpass.private.coffee/api/interpreter',
@@ -36,7 +35,7 @@ app.get('/', async (req, res) => {
           'User-Agent': 'SilvyWalk/1.0',
         },
         body: `data=${encodeURIComponent(query)}`,
-        timeout: 35000,
+        signal: AbortSignal.timeout(28000),
       });
 
       if (!response.ok) continue;
@@ -63,7 +62,7 @@ app.get('/geocode', async (req, res) => {
         'User-Agent': 'SilvyWalk/1.0',
         'Accept-Language': 'it',
       },
-      timeout: 25000,
+      signal: AbortSignal.timeout(10000),
     });
     const data = await response.json();
     if (data && data.length > 0) {
