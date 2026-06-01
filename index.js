@@ -19,14 +19,11 @@ async function queryOverpass(query) {
     'https://overpass.kumi.systems/api/interpreter',
   ];
 
-  // Lancia tutte le richieste in parallelo
-  // Il primo che risponde vince, gli altri vengono cancellati
   return new Promise((resolve, reject) => {
     let resolved = false;
     let errors = 0;
 
     servers.forEach((server, index) => {
-      // Ogni server parte con un delay di 8 secondi dal precedente
       setTimeout(async () => {
         if (resolved) return;
         try {
@@ -39,7 +36,7 @@ async function queryOverpass(query) {
               'User-Agent': 'SilvyWalk/1.0',
             },
             body: `data=${encodeURIComponent(query)}`,
-            signal: AbortSignal.timeout(55000),
+            signal: AbortSignal.timeout(30000),
           });
 
           if (resolved) return;
@@ -68,7 +65,7 @@ async function queryOverpass(query) {
           errors++;
           if (errors === servers.length) reject(new Error('Tutti i server falliti'));
         }
-      }, index * 8000); // 0s, 8s, 16s
+      }, index * 8000);
     });
   });
 }
@@ -77,8 +74,8 @@ app.get('/', async (req, res) => {
   const { lat, lng, r } = req.query;
   if (!lat || !lng) return res.status(400).json({ error: 'lat e lng richiesti' });
 
-  const radius = r || '4000';
-  const query = `[out:json][timeout:50];(node["tourism"~"alpine_hut|wilderness_hut"]["name"](around:${radius},${lat},${lng});node["natural"="peak"]["name"](around:${radius},${lat},${lng});node["mountain_pass"="yes"]["name"](around:${radius},${lat},${lng});node["amenity"="shelter"]["name"](around:${radius},${lat},${lng});way["highway"~"path|track"]["name"](around:${radius},${lat},${lng}););out body center qt;way["highway"~"path|track"]["name"](around:${radius},${lat},${lng});out geom qt;`;
+  const radius = r || '3000';
+  const query = `[out:json][timeout:25];(node["tourism"~"alpine_hut|wilderness_hut"]["name"](around:${radius},${lat},${lng});node["natural"="peak"]["name"](around:${radius},${lat},${lng});node["mountain_pass"="yes"]["name"](around:${radius},${lat},${lng});node["amenity"="shelter"]["name"](around:${radius},${lat},${lng});way["highway"~"path|track"]["name"](around:${radius},${lat},${lng}););out body center qt;way["highway"~"path|track"]["name"](around:${radius},${lat},${lng});out geom qt;`;
 
   try {
     const data = await queryOverpass(query);
